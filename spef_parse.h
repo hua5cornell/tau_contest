@@ -75,16 +75,16 @@ class Spef {
     void addNet(Net* net) {
       Nets.insert(make_pair(net -> name, net));
     }
-    string standard;
-    string design_name;
-    string date;
-    string vendor;
-    string program;
-    string version;
-    string design_flow;
-    string divider;
-    string delimiter;
-    string bus_delimiter;
+//    string standard;
+//    string design_name;
+//    string date;
+//    string vendor;
+//    string program;
+//    string version;
+//    string design_flow;
+//    string divider;
+//    string delimiter;
+//    string bus_delimiter;
     string t_unit;
     string c_unit;
     string r_unit;
