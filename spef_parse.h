@@ -41,10 +41,12 @@ class V
     V(const string &vertex) {
       name = vertex;
       cap = 0;
+      isconn = false;
     };
     string name;
     unordered_map <V*, double> succ;
     unordered_map <V*, double> pred;
+    bool isconn;
     ConnectionType type;
     ConnectionDirection direction;
     double cap;

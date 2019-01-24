@@ -25,32 +25,32 @@ int main(int argc, char *argv[]) {
       if(it_2 -> second -> type == ConnectionType::INTERNAL) {
         cout << "It is an internal node which is ";
         if(it_2 -> second -> direction == ConnectionDirection::INPUT) {
-          cout << "an input" << endl;
+          cout << "an input" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
         else if(it_2 -> second -> direction == ConnectionDirection::OUTPUT) {
-          cout << "an output" << endl;
+          cout << "an output" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
         else {
-          cout << "an inout" << endl;
+          cout << "an inout" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
       }
       else {
         cout << "It is an external node which is ";
         if(it_2 -> second -> direction == ConnectionDirection::INPUT) {
-          cout << "an input" << endl;
+          cout << "an input" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
         else if(it_2 -> second -> direction == ConnectionDirection::OUTPUT) {
-          cout << "an output" << endl;
+          cout << "an output" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
         else {
-          cout << "an inout" << endl;
+          cout << "an inout" << " and the conn indicator is " << it_2 -> second -> isconn << endl;
         }
       }
     }
     cout << "The net has " << net -> all_nodes.size() << " capacitances and the total capacitance is " << net -> total_cap << endl;
     cout << "They are " << endl;
     for(unordered_map <string, V*>::iterator it_2 = net -> all_nodes.begin(); it_2 != net -> all_nodes.end(); ++it_2) {
-      cout << it_2 -> first << " = " << it_2 -> second -> cap << endl;
+      cout << it_2 -> first << " = " << it_2 -> second -> cap << " and the conn indicator is " << it_2 -> second -> isconn << endl;
       V* node = it_2 -> second;
       for(unordered_map<V*, double>::iterator it_3 = node -> succ.begin(); it_3 != node -> succ.end(); ++it_3) {
         cout << "there is resistance between " << it_2 -> first << " and " << it_3 -> first -> name << " which is " << it_3 -> second << endl;

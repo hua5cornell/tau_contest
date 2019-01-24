@@ -124,6 +124,7 @@ void add_conn(ifstream &is, string &delimiter, Net* net, CurrentState &state, st
   else {
     node -> direction = ConnectionDirection::INOUT;
   }
+  node -> isconn = true;
   net -> conn.insert(make_pair(name, node));     
 }
 
