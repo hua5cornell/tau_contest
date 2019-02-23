@@ -43,23 +43,23 @@ escapeinside={(*}{*)},
   Circuits\thanks{Thanks to various funding agencies. Omitted for blind review}
 }
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address}
+\author{\IEEEauthorblockN{Yi-Shan Lu}
+\IEEEauthorblockA{\textit{Electrical and Computer Engineering} \\
+\textit{University of Texas at Austin}\\
+Austin, TX \\
+yishanlu@utexas.edu}
 \and
-\IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address}
-\and
-\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address}
+\IEEEauthorblockN{Wenmian Hua}
+\IEEEauthorblockA{\textit{Electrical Engineering} \\
+\textit{Yale University}\\
+New Haven, CT \\
+wenmian.hua@yale.edu}
+%\and
+%\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
+%\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+%\textit{name of organization (of Aff.)}\\
+%City, Country \\
+%email address}
 %\and
 %\IEEEauthorblockN{4\textsuperscript{th} Given Name Surname}
 %\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
@@ -72,7 +72,104 @@ email address}
 \begin{abstract}
 Timing-driven optimization is essential for the success of closure flows. In this contest, we explored existing efficient buffer insertion and gate sizing algorithms to fix timing violations of a design and optimize its leakage power, performance and area without affecting its functionality. By using the infrastructure provided by the Galois system for parallelization, we will provide a fast design optimization flow which can be run in part of a static timing engine.
 \end{abstract}
-
+\tikzset{
+decision/.style={
+  diamond,
+  draw,
+  text width=4em,
+  text badly centered,
+  inner sep=0pt
+},
+flipflop/.style={
+  rectangle,
+  draw,
+  very thick,
+  minimum height=5em,
+  minimum width=1.3em,
+},
+block/.style={
+  rectangle,
+  draw,
+  text width=6em,
+  text centered,
+  very thick,
+  rounded corners,
+  align=center,
+},
+cycle/.style={
+  ellipse,
+  draw,
+  dashed,
+  minimum width = 1.6cm,
+  minimum height = 1.05cm,
+  ultra thick,
+},
+Celement/.style={
+  circle,
+  draw,
+  very thick,
+  minimum width = 0.7cm,
+},
+combinational/.style={
+  cloud,
+  draw,
+  very thick,
+  minimum height=4.5em,
+  minimum width=1.8cm,
+},
+module/.style={
+  rectangle,
+  draw,
+  very thick,
+  minimum height=5em,
+  minimum width=1.2cm,
+  inner sep=0pt,
+},
+cell/.style={
+  rectangle,
+  draw,
+  very thick,
+  minimum height=4.5em,
+  minimum width=1cm,
+  inner sep=0pt,
+},
+descr/.style={
+  fill=white,
+  inner sep=2.5pt,
+},
+CLK/.style={
+  isosceles triangle,
+  isosceles triangle apex angle=60,
+  draw,
+  very thick,
+  minimum height=0.27cm,
+  inner sep=0pt,
+},
+arrow/.style={
+  ->, >=stealth, thick,
+},
+connector/.style={
+  -latex,
+  font=\scriptsize,
+},
+line/.style={
+  draw, -latex',
+  very thick,
+  inner sep=0pt,
+},
+capa/.style={
+  draw=black,
+  line,
+  minimum width=0.5cm,
+  inner sep=0pt,
+},
+groud/.style={
+  draw=black,
+  line,
+  minimum width=0.25cm,
+  inner sep=0pt,
+},
+}
 \input{Introduction.tex}
 \input{Methodologies.tex}
 \input{Parallelism.tex}
