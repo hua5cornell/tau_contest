@@ -40,8 +40,7 @@ escapeinside={(*}{*)},
 
 \begin{document}
 
-\title{2019 TAU Contest: Power Performance Area (PPA) Optimization of Design
-  Circuits\thanks{Thanks to various funding agencies. Omitted for blind review}
+\title{ParallelClosure: A Parallel Design Optimizer for Timing Closure\thanks{Thanks to various funding agencies. Omitted for blind review}
 }
 
 \author{\IEEEauthorblockN{Yi-Shan Lu}
@@ -71,7 +70,7 @@ wenmian.hua@yale.edu}
 \maketitle
 
 \begin{abstract}
-Timing-driven optimization is essential for the success of closure flows. In this contest, we explored existing efficient buffer insertion and gate sizing algorithms to fix timing violations of a design and optimize its leakage power, performance and area without affecting its functionality. By using the infrastructure provided by the Galois system for parallelization, we will provide a fast design optimization flow which can be run in part of a static timing engine.
+Timing-driven optimization is essential for the success of closure flows. In this contest, we explore existing efficient buffer insertion and gate sizing algorithms to fix timing violations, and minimize area, leakage power, and clock period for a design without altering its functionality. By using the Galois infrastructure for parallelization, we prototype a fast timing-driven design optimizer, ParallelClosure, to effectively and efficiently optimize designs with a reasonable number of timing violations.
 \end{abstract}
 \tikzset{
 decision/.style={

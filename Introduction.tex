@@ -1,10 +1,13 @@
 \section{Introduction}
-Timing-driven optimization is imperative for the success of closure flows, and it is essential to find efficient ways to make changes to the design to satisfy timing constraints and optimize power, performance and area. In this contest, given a Verilog netlist, a SPEF file for net delay models, a set of cell libraries (corners) and an SDC file, we are going to generate an optimized design in Verilog and Spef with no violations of hold time and maximum slew transition and minimized area, leakage power and clock period for all given corners. Note that the optimization should consider multi-corner multi-mode (MCMM) scenario.
+Timing-driven optimization is imperative for the success of closure flows, and it is essential to find efficient ways to make changes to the design to satisfy timing constraints and optimize power, performance and area. In this contest, given a Verilog netlist, a SPEF file for net delay models, a set of cell libraries (corners) and an SDC file, we are going to generate an optimized design in Verilog and SPEF with (1) no violations of hold time and maximum slew transition for all given corners, and (2) minimized area, leakage power and clock period. Note that the optimization should consider multi-corner multi-mode (MCMM) scenarios.
 
-The optimization can be done by buffer insertion/deletion and gate sizing.
+Table~\ref{table:Change} summarizes the optimizations allowed in this contest. For better control of the design optimization, we do not consider buffer deletion, as its effect to the design is unknown. As pointed out by Jiang et al. in~\cite{Jiang:Interleaving}, to minimize the increase of area, buffer insertion is preferred for fixing highly critical paths, and gate sizing is more suitable for addressing mildly critical paths. Therefore, we first fix highly critical paths by buffer insertion, and then recover area/power while optimizing for setup time using gate sizing. We only optimize for datapaths in between registers; clock network remains untouched throughout our optimization process to simplify the removal of setup/hold time violations.
 
+We leverage parallelization to speedup the optimization process. We use operator formulation of algorithms~\cite{pingali11}, a {\em data-centric} abstraction of algorithms, to analyze the parallelism available in the algorithms used in our optimizer, ParallelClosure; and then parallelize the algorithms with the Galois framework~\cite{nguyen:2013,Lenharth:2016}, a C++ library for parallel programming that implements the operator formulation.
 
-According to the paper~\cite{Jiang:Interleaving}, buffer insertion implies an increase of the area, and might be more preferred for highly critical paths. For other mildly critical paths, however, gate sizing will be better choice. Thus, we are going to implement our design optimization flow in this contest as following: First, we run timing analysis for the whole circuit once, and identify high fan-out nets (and highly critical nets) with some reasonable criterions. Then based on the contest rule that no buffers are allowed within an RC-tree, we will perform buffer insertion for those high fan-out nets without an RC-tree only and leave the remaining violations and optimization problems to gate sizing stage for convenience. Finally, we will perform the gate sizing and conclude our design optimization flow.
+The rest of the paper is organized as follows. Section~\ref{sec:buf_insert} illustrates the buffer insertion in ParallelClosure. Section~\ref{sec:gate_sizing} elaborates the gate sizing in ParallelClousre. Section~\ref{sec:parallel} describes the parallelization strategy used in ParallelClosure. Section~\ref{sec:limit} reveals the current limitations of ParallelCloure and the plan to fix them in the future. Section~\ref{sec:conclusions} concludes the paper.
+
+%According to the paper~\cite{Jiang:Interleaving}, buffer insertion implies an increase of the area, and might be more preferred for highly critical paths. For other mildly critical paths, however, gate sizing will be better choice. Thus, we are going to implement our design optimization flow in this contest as following: First, we run timing analysis for the whole circuit once, and identify high fan-out nets (and highly critical nets) with some reasonable criterions. Then based on the contest rule that no buffers are allowed within an RC-tree, we will perform buffer insertion for those high fan-out nets without an RC-tree only and leave the remaining violations and optimization problems to gate sizing stage for convenience. Finally, we will perform the gate sizing and conclude our design optimization flow.
 
 \begin{table*}
 \caption{Impact of Incremental Design Changes}
@@ -13,8 +16,8 @@ According to the paper~\cite{Jiang:Interleaving}, buffer insertion implies an in
 \begin{tabular}{|c|c|c|c|c|c|} \hline
 Technique & Setup Timing & Hold Timing & Max Transition & Leakage Power & Area \\ \hline
 Add Buffer & Degrade & Improve & Improve & Increase & Increase\\ \hline
-Upsize Strength & Improve & Degrade & Improve & Increase & Increase \\ \hline
-Downsize Strength & Degrade & Improve & Degrade & Decrease & Decrease \\ \hline
+Upsize Gate & Improve & Degrade & Improve & Increase & Increase \\ \hline
+Downsize Gate & Degrade & Improve & Degrade & Decrease & Decrease \\ \hline
 Delete Buffer & Degrade or Improve & Degrade or Improve & Degrade or Improve & Decrease & Decrease \\ \hline
 \end{tabular}
 \vspace{-1em}
