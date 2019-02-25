@@ -25,13 +25,13 @@ With the operator formulation of algorithms, we are ready to analyze the paralle
 
 Given a synchronous design, STA represents the design as a timing graph $G = (V, E)$, a DAG, where nodes in $V$ are the pins and $(u, v) \in E$ are wires or timing arcs between pins. For an edge $(u, v)$, we say $u$ is $v$'s predecessor and $v$ is $u$'s successor. STA then computes for all pins their arrival times and slew rates in topological order from primary inputs; and computes required times and slacks in reverse topological order from primary outputs and constrained pins, e.g., register inputs.
 
-As the timing graph for a synchronous design is a DAG, the processing order in STA can be enforced by explicitly tracking the number of unresolved dependencies for each node. A node can be processed if all its dependencies are resolved, and all the nodes whose dependencies are cleared at the same time can be processed in parallel.
+As the timing graph for a synchronous design is a DAG, the processing order in STA can be enforced by explicitly tracking the number of unresolved dependencies for each pin. A pin can be processed if all its dependencies are resolved, and all the pins whose dependencies are cleared at the same time can be processed in parallel.
 
 Specifically, each pin $v$ is associated with a counter, $dep(v)$, to track the number of unresolved dependencies for $v$ at a moment. For computing arrival times and slew rates, initially $dep(v) = |pred(v)|$, where $pred(v)$ is the set of $v$'s predecessors. When a pin $u$ finishes computing its arrival time and slew rate, $u$ atomically decrements $dep(v)$ for all $v \in succ(u)$, where $succ(u)$ is the set of $u$'s successors. Pin $v$ becomes active when $dep(v) = 0$. Initially only primary inputs are active. Pins can be processed in parallel if their $dep$s are zero at the same time.
 
 For computing required times and slacks, initially $dep(v) = |succ(v)|$. When a pin $w$ finishes computing its required time and slack, $w$ atomically decrements $dep(v)$ for all $v \in pred(w)$. Pin $v$ becomes active when $dep(v) = 0$. Initially only pins with no successors, e.g., primary outputs, are active. Pins whose $dep$s are zero at the same time can be processed in parallel.
 
-As STA needs to track active nodes explicitly, STA is a {\em data-driven} algorithm. All active nodes can be processed in any order, so STA is an {\em unordered} algorithm. Note that the ordering in STA only defines when nodes should become active but not the processing order of active nodes.
+As STA needs to track active nodes explicitly, STA is a {\em data-driven} algorithm. All active pins can be processed in any order, so STA is an {\em unordered} algorithm. Note that the ordering in STA only defines when pins should become active but not the processing order of active pins.
 
 \subsubsection{Buffer Insertion}
 
@@ -44,7 +44,7 @@ Every gate output can insert such a buffer independently, so this is a {\em topo
 
 Recall from Section~\ref{sec:gate_sizing} that gate sizing with slew targeting~\cite{Held:Gate} is a round-based algorithm. In each round, a full STA is performed first, then all pins set their slew targets, and then all gates select their cells. Finally, the new cell assignment is scored and then kept or reverted.
 
-\paragraph{Setting slew targets} Slew targets can be set for each pin independently in any order, since each pin only needs its slack and current slew to decide its slew target in the next round. Therefore, setting slew targets is a {\em topology-driven}, {\em unordered} algorithm.
+\paragraph{Setting slew targets} Slew targets can be set for each pin independently in any order, since each pin $p$ can get from STA the required information for computing new slew target in the next round: current slew, $p$'s own slack, and the neighboring gates' pins' slacks. Therefore, setting slew targets is a {\em topology-driven}, {\em unordered} algorithm.
 
 \paragraph{Cell assignment} The parallelism available in assigning cells to gates is similar to that in computing required times and slacks in STA. As mentioned in~\ref{sec:sizing_order}, gates should be sized in reverse topological order on the graph of gate connectivity, with edges feeding into register data inputs ignored. Instead of constructing a gate connectivity graph and then ignore some edges in it, we can enforce the order of sizing gates with the idea that a gate should be processed after all its pins are processed. This reduces the memory space requirement of ParallelClosure by utilizing the timing graph for STA for gate sizing as well.
 

@@ -33,7 +33,7 @@
 We use gate sizing to optimize for setup time, area and leakage power, while not introducing hold time violations and satisfying maximum slew requirement.
 %Gate sizing problems are also well studied in the literature. TILOS~\cite{Fishburn:TILOS} applied Greedy method to gate sizing and modeled delay and slew functions as posynomials. The paper~\cite{Sapatnekar:An} provided a geometric programming approach, which is guaranteed to find the global optimal solution, to solve the transistor sizing problem. Lagrangian Relaxation is also widely used in both continuous gate sizing~\cite{Chen:Fast} and discrete gate sizing~\cite{Liu:A}, and it provides scalable methods to large instances. Faster approaches for gate sizing in practice given predefined discrete cell libraries are delay budget approaches~\cite{Chen:iCOACH,Dai:MOSIZ}, which repeatedly distribute delay budgets to cells and can manage interactions between gates~\cite{Held:Gate}. Slew target can also be distributed instead of delay budgets as an alternative, based on the assumption that the delay is a monotonic function of the slew. Most of other discrete gate sizing methods ignore the slew, and compared to these work, the slew targeting method enables a more accurate gate sizing~\cite{Held:Gate}.
 
-In this contest, we implement the slew target method introduced by Held in~\cite{Held:Gate}, because (1) it directly addresses slew violations, (2) it avoids a large number of incremental timing updates, and (3) it is highly parallelizable. Since the paper focuses on fixing setup time violations, we generalize the method a little bit to handle hold time violations.
+In this contest, we implement the slew targeting method introduced by Held in~\cite{Held:Gate}, because (1) it directly addresses slew violations, (2) it avoids a large number of incremental timing updates, and (3) it is highly parallelizable. Since the paper focuses on fixing setup time violations, we generalize the method a little bit to handle hold time violations.
 
 %Slew target approach~\cite{Held:Gate} also turns out to give more accurate gate sizing solutions than delay budget approach~\cite{Chen:iCOACH,Dai:MOSIZ}. Furthermore, it is a graph-based algorithm, which well adapts to our Galois system. Since the paper focuses on fixing setup time violations, we generalize the method a little bit such that it also addresses hold time violations.
 
@@ -62,20 +62,20 @@ We perform STA after buffer insertion and use the slew values as the initial sle
 
 Let $slewt(p)$ be the slew target of an output pin $p$ of gate $g$. In setup time analysis, if $p$ has a negative slack and it is on a critical path, we upsize $g$ by decreasing $slewt(p)$; otherwise, we downsize $g$ by increasing $slewt(p)$. In hold time analysis, the operation is opposite: downsize the gate when one of its output pins has negative slack and the pin is on a critical path, and upsize otherwise.
 
-To know whether $p$ is on a critical path, we compute the local criticality of $p$, $lc(p)$, as follows. Let $slack^{-}(g) = \min\{slack(j) | (i, j) \in wires \land j \in input(g)\}$, where $input(g)$ is the set of input pins for gate $g$. Then $lc(p) = \max\{slack(p) - slack^{-}(g), 0\}$. Note that if $p$ belongs to a combinational gate $g$, then $lc(p) \geq 0$, and $p$ is on a critical path if and only if $lc(p) = 0$. Since we only optimize for datapaths in between registers, this definition of $lc(p)$ suffices to guide the update of slew targets.
+To know whether $p$ is on a critical path, we compute the local criticality of $p$, $lc(p)$, as follows. Let $slack^{-}(g) = \min\{slack(i) | (i, j) \in W \land j \in input(g)\}$, where $W$ is the set of wires and $input(g)$ is the set of input pins for gate $g$. Then $lc(p) = \max\{slack(p) - slack^{-}(g), 0\}$. Note that if $p$ belongs to a combinational gate $g$, then $lc(p) \geq 0$, and $p$ is on a critical path if and only if $lc(p) = 0$. Since we only optimize for datapaths in between registers, this definition of $lc(p)$ suffices to guide the update of slew targets.
 
 Now we elaborate how to update the value for slew target of $p$. Instead of computing the change in slew target based on slacks as in~\cite{Held:Gate}, we leverage the information in the given cell libraries to directly come up with new slew targets.
 
-Tables~\ref{table:lib1} and~\ref{table:lib2} show the rising slews for cells BUF\_X1 and BUF\_X2, respectively. Note that (1) both tables contain similar values, and (2) for a given input slew and load, the corresponding entry in Table~\ref{table:lib2} is left to the one in Table~\ref{table:lib1}, and the two entries are always on the same row. For example, for input slew value of 15.6743 and load value of 30.3269, the output slew is given by the entry at row 3 and column 6 in Table~\ref{table:lib1}, and by the entry at row 3 and column 5 in Table~\ref{table:lib2}. This relation also holds for other types of functionally equivalent cells with different sizes. Therefore, the slew target of $p$ can be updated according to a sequence of numbers derived through table look-up into output slew tables using current input slew and different output capacitance. We call this sequence the slew possibilities of $p$.
+Tables~\ref{table:lib1} and~\ref{table:lib2} show the rising slews for pin Z of cell BUF\_X1 and that of BUF\_X2, respectively. Note that (1) both tables contain similar values, and (2) for a given input slew and output capacitance, the corresponding entry in Table~\ref{table:lib2} is left to the one in Table~\ref{table:lib1}, and the two entries are always on the same row. For example, for input slew value of 15.6743 and output capacitance value of 30.3269, the output slew is given by the entry at row 3 and column 6 in Table~\ref{table:lib1}, and by the entry at row 3 and column 5 in Table~\ref{table:lib2}. This relation also holds for other types of functionally equivalent cells with different sizes. Therefore, the slew target of $p$ can be updated according to a sequence of numbers derived through table look-up into output slew tables using current input slew and different output capacitance. We call this sequence the slew possibilities of $p$.
 
-To upsize/downsize a gate, we take smaller/larger entries in $p$'s slew possibilities, which can be approximated as follows. Through table look-up, the smallest entry, $lb$, is computed using the current input slew and zero driving capacitance, and the largest entry, $ub$, using the current input slew and the maximum driving capacitance of $p$. Intermediate entries can be approximated based on a geometric sequence whose common ratio $r = (\frac{ub}{lb})^{\frac{1}{k}}$, where $k$ is a tunable parameter. In this contest, we have 8 entries in slew possibilities, and we set $k = 20$. The intermediate 6 terms are $lb\cdot r$, $lb\cdot r^3$, $lb\cdot r^5$, $lb\cdot r^8$, $lb\cdot r^{11}$, and $lb\cdot r^{15}$.
+To upsize/downsize a gate $g$ to which pin $p$ belongs, we take smaller/larger terms in $p$'s slew possibilities, which can be approximated as follows. Through table look-up, the smallest term, $lb$, is computed using the current input slew and zero driving capacitance; and the largest term, $ub$, using the current input slew and the maximum driving capacitance of $p$. Intermediate terms can be approximated based on a geometric sequence whose common ratio $r = (\frac{ub}{lb})^{\frac{1}{k}}$, where $k$ is a tunable parameter. In this contest, we have 8 terms in slew possibilities, and we set $k = 20$. The intermediate 6 terms are $lb\cdot r$, $lb\cdot r^3$, $lb\cdot r^5$, $lb\cdot r^8$, $lb\cdot r^{11}$, and $lb\cdot r^{15}$.
 
 Recall that each output pin may have different slew targets for different timing corners and delay modes. The slew targets for different corners and delay modes can be set independently from each other.
 
 By updating the slew targets properly, we can eliminate maximum slew violation by construction.
 
 \begin{table*}
-\caption{The Rising Slew Table for Buf\_X1 from Nangate 45nm Typical Corner}
+\caption{The Rising Slew Table for BUF\_X1 from Nangate 45nm Typical Corner}
 \label{table:lib1}
 \centering
 \begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
@@ -92,7 +92,7 @@ By updating the slew targets properly, we can eliminate maximum slew violation b
 \end{table*}
 
 \begin{table*}
-\caption{The Rising Slew Table for Buf\_X2 from Nangate 45nm Typical Corner}
+\caption{The Rising Slew Table for BUF\_X2 from Nangate 45nm Typical Corner}
 \label{table:lib2}
 \centering
 \begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
@@ -123,14 +123,14 @@ By updating the slew targets properly, we can eliminate maximum slew violation b
 \subsubsection{Order of Sizing}
 \label{sec:sizing_order}
 
-Having the slew target updated, we now size the gates. Since output capacitance usually has larger impact on the cell timing than the input slew, we want to fix all the downstream gates of $g$ before sizing $g$. This requires a reverse topological order of all gates. However, gates may form cycles in a synchronous design using registers. To resolve this issue, we ignore the edges feeding into register inputs to have a directed acyclic graph (DAG), from which we define a reverse topological order for gates.
+Having the slew target updated, we now size the gates. Since output capacitance usually has larger impact on the cell timing than the input slew, we want to fix all the downstream gates of $g$ before sizing $g$. This requires a reverse topological order of all gates. However, gates may form cycles in a synchronous design using registers. To resolve this issue, we ignore the edges feeding into register inputs to have a directed acyclic graph (DAG) of gate connectivity, from which we define a reverse topological order for gates.
 
 \subsubsection{Input Slew Estimation}
-As the given cell libraries are of NLDM, and upstream gates of $g$ are not fixed yet, we need to estimate slews for each of $g$'s input pins. Figure~\ref{fig:slew} shows an example. Let $est\_slew(p) = \theta slewt(p) - (1-\theta)slew(p)$ be the estimated slew at output pin $p$, where $slew(p)$ is the slew of $p$ from the STA and $\theta \in [0,1]$ is a parameter that is close to 1 when gate sizing starts but close to 0 when gate sizing is about to converge. Then, $est\_slew(q) = est\_slew(p') + slew\_degrad(p', q)$, where $slew\_degrad(p', q)$ denotes the slew degradation due to the wire segment from $p'$ to $q$, which can be computed by the RC-tree model~\cite{TAU:Contest}.
+As the given cell libraries are of NLDM, and upstream gates of $g$ are not fixed yet, we need to estimate slews for each of $g$'s input pins. Figure~\ref{fig:slew} shows an example. Let $est\_slew(p) = \theta slewt(p) - (1-\theta)slew(p)$ be the estimated slew at output pin $p$, where $slew(p)$ is the slew of $p$ from STA, and $\theta \in [0,1]$ is a parameter that is close to 1 when gate sizing starts but close to 0 when gate sizing is about to converge. Then, $est\_slew(q) = est\_slew(p') + slew\_degrad(p', q)$, where $slew\_degrad(p', q)$ denotes the slew degradation due to the wire segment from $p'$ to $q$, which can be computed by the RC-tree model~\cite{TAU:Contest}.
 
 \subsubsection{Cell Selection}
 
-Let $out\_est\_slew(p)$ be the estimated output slew at pin $p$ through table look-up using the load seen by $p$ and $est\_slew(q)$, where $(q, p)$ is a timing arc. A pin may have different slew targets for each combination of timing corners and setup/hold time analysis, so we use the corresponding one when sizing a gate.
+Let $out\_est\_slew(p)$ be the estimated output slew at pin $p$ through table look-up using the load seen by $p$ and $est\_slew(q)$, where $(q, p)$ is a timing arc. A pin may have different slew targets for each combination of timing corners and setup/hold time analysis, so use the corresponding one when sizing a gate at a specific corner.
 
 \begin{itemize}
 \item In setup time analysis, we select for gate $g$ the minimum size of equivalent cells such that $out\_est\_slew(p) \leq slewt(p)$ holds for all output pins $p$ of gate $g$ at the corner being considered. Then we choose the maximum sized cell from the selected cells across all corners for gate $g$ in setup time analysis. We define $size_{s}(g)$ as the cell size selected for $g$ in setup time analysis.
@@ -180,7 +180,7 @@ Let $out\_est\_slew(p)$ be the estimated output slew at pin $p$ through table lo
 
 \subsection{Convergence}
 \label{sec:sizing_converge}
-After cell selection for all gates, we run STA again. If the worst negative slack improves for all corners, we proceed to next round of gate sizing using the current cell assignment. Otherwise, we score the current cell assignment by a linear combination of worst negative slack, average total negative slack and average cell area. The lower the score, the better. If the score decreases for all corners, we also proceed to next round of gate sizing using the current cell assignment. If not, we revert to the previous cell assignment and quit gate sizing.
+After cell selection for all gates, we run STA again. If the worst negative slack improves for all corners, we proceed to next round of gate sizing using the current cell assignment. Otherwise, we score the current cell assignment by a linear combination of worst negative slack, average total negative slack over all path endpoints, and average cell area over all gates. The lower the score, the better. If the score decreases for all corners, we also proceed to next round of gate sizing using the current cell assignment. If not, we revert to the previous cell assignment and quit gate sizing.
 
 %Again, since our problem considers multiple corners, after we get the sizing solution for each corner, we must take the maximum sizing for each cell across different corners to make sure that the sizing solution satisfies the slew targets for all the corners.
 
