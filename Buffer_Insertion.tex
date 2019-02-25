@@ -1,31 +1,26 @@
 \section{Buffer Insertion}
+We use buffer insertion to first fix maximum capacitance violations, and then fix hold time violations.
 
-\begin{table*}
-\caption{Impact of Incremental Design Changes}
-\label{table:Change}
-\centering
-\begin{tabular}{|c|c|c|c|c|c|} \hline
-Technique & Setup Timing & Hold Timing & Max Transition & Leakage Power & Area \\ \hline
-Add Buffer & Degrade & Improve & Improve & Increase & Increase\\ \hline
-Upsize Strength & Improve & Degrade & Improve & Increase & Increase \\ \hline
-Downsize Strength & Degrade & Improve & Degrade & Decrease & Decrease \\ \hline
-Delete Buffer & Degrade or Improve & Degrade or Improve & Degrade or Improve & Decrease & Decrease \\ \hline
-\end{tabular}
-\vspace{-1em}
-\end{table*}
+To fix maximum capacitance, we begin by an initial run of timing analysis for the circuit and identify pins that are driving loads larger than their maximum capacitance limits. Then for each such pin, we insert a buffer in between the pin and the loads. The inserted buffer should be of the minimum size that can drive the load legally.
 
-In this contest, we adopt the technique presented in~\cite{Shenoy:Minimum} to insert buffers to remove hold time constraints. We start by introducing the buffer insertion problem with some basic definitions in the paper.
+To fix hold time violations, we adopt the technique presented in~\cite{Shenoy:Minimum}. We first perform Static Timing Analysis (STA) and sort all the path end points by their hold time slacks across multiple corners, and find the end point with worst negative hold time slack $s_h$, and its corresponding path and corner. Then for all the edges on the path, we pick the edge $(i, j)$ that has the largest setup time slack ($s_s$) (for the corresponding corner) and then insert buffers in between pins $i$ and $j$. To minimize the area and power, we always insert the smallest buffer in the cell library. Since our delay model is NLDM, we approximate the delay of a buffer, $d_{buf}$, with the slew at $i$ and the pin capacitance at $j$. The number of buffers to be inserted is $\max\{1, \lceil\frac{\min\{|s_s|, |s_h|\}}{d_{buf}}\rceil\}$. We repeat this process until all the hold time violations are fixed.
 
-A combinational circuit $C$ is represented as a directed acyclic graph, with set of vertices $V$ denoting every pin in the circuit and two sets of edges $E^{I}$ and $E^{E}$ denoting the two kinds of edges, internal and external. Specifically, an internal edge is directed from input pin of a gate to its output pin, and an external edge represents the interconnection or wiring in the circuit. An edge $e_{ij}$ from $i$ to $j$, where $i$ is called the fanin of $j$ and $j$ is called the fanout of $i$, has a weight $w_{ij}$ associated with it. If $e_{ij} \in E^{I}$, then the weight is the delay of the gate from the input represented by $i$ to the output of the gate. If $e_{ij} \in E^{E}$, then the weight is a variable whose value is to be determined. Delay can be inserted only on external edges. For each vertex $i$, $a_i$ denotes its early arrival time, $A_i$ denotes its late arrival time, $r_i$ denotes its early required time and $R_i$ denotes its late required time. Namely, $r_i \leq a_i \leq A_i \leq R_i$.
 
-The buffer insertion problem can be stated as following: Given a circuit $C(V, E^{E} \cup E^{I})$ edge-weights on the internal edges, arrival times (early and late) at all primary input and the required time at all primary outputs, we assign a set of delays to the external edges so that all paths meet the hold time constraints. This is called the padding problem in the paper, and according to the paper, the following theorem gives a sufficient and necessary condition for the padding problem to have a feasible solution:
-\begin{theorem}
-In any circuit, let $i_1$ be a primary input and $i_n$ be a primary output such that there is a path $p$ from $i_1$ to $i_n$. The padding problem has a feasible solution if and only if for any such $p$, $A_{i1} - a_{i1} \leq R_{in} - r_{in}$.
-\end{theorem}
 
-According to the contest rule, buffers can be inserted an ideal wire, before the root of an RC-tree, or after the leaf of the RC-tree, but not within an RC-tree. In our implementation, we begin by an initial run of timing analysis for the circuit and identify those high fanout nets with the load capacitance larger than the maximum value that can be driven by the driver. Then, we insert the smallest buffer to these nets whose maximum driving capacitance is larger than or equal to the capacitance load.
+%In a circuit, for each pin $p$, $a_p$ denotes its early arrival time, $A_p$ denotes its late arrival time, $r_p$ denotes its early required time and $R_p$ denotes its late required time. For a legal circuit without timing violations, $r_p \leq a_p \leq A_p \leq R_p$. According to the paper~\cite{Shenoy:Minimum}, in any circuit, hold time violations can be fixed by buffer insertions if and only if $A_{i} - a_{i} \leq R_{o} - r_{o}$ where $i$ is a primary input and $o$ is a primary output or a register data input.
 
-After this high fanout nets pre-processing, we sort the hold slack value for all the paths and across multiple corners (since we are considering problems in multiple corners) and find the worst negative hold time slack value $s_h$ and its corresponding path p and corner. Then for all the edges on the path, we pick the one that has the largest setup time slack ($s_s$) (for the corresponding corner) and we will insert buffers at the leaf of the RC-Tree of the edge (wire) if there is any. To minimize the area and power, we will always insert the smallest buffer in the cell library. Since we can get the slew value of the edge (wire) from the timing analysis, and the capacitance value that the buffer is driving is also known, the two values are good approximations for the input slew and the output capacitance of the buffer, and we can use them to find the approximated delay value $d$ of the buffer. Assume that each of this buffer gives an approximated delay of $d$, the number of buffers we will insert is $\frac{\min\{|s_s|, |s_h|\}}{d}$. 
+
+%In this contest, we adopt the technique presented in~\cite{Shenoy:Minimum} to insert buffers to remove hold time violations. In a circuit, for each pin $p$, $a_p$ denotes its early arrival time, $A_p$ denotes its late arrival time, $r_p$ denotes its early required time and $R_p$ denotes its late required time. For a legal circuit without timing violations, $r_p \leq a_p \leq A_p \leq R_p$. According to the paper~\cite{Shenoy:Minimum}, in any circuit, hold time violations can be fixed by buffer insertions if and only if $A_{i} - a_{i} \leq R_{o} - r_{o}$ where $i$ is a primary input and $o$ is a primary output or a register data input.
+
+%\begin{theorem}
+%In any circuit, let $i_1$ be a primary input and $i_n$ be a primary output such that there is a path $p$ from $i_1$ to $i_n$. The padding problem has a feasible solution if and only if for any such $p$, $A_{i1} - a_{i1} \leq R_{in} - r_{in}$.
+%\end{theorem}
+
+%According to the contest rule, buffers can be inserted an ideal wire, before the root of an RC-tree, or after the leaf of the RC-tree, but not within an RC-tree. In our implementation, we begin by an initial run of timing analysis for the circuit and identify pins that are driving loads larger than their maximum capacitance limit. Then for each such pin, we insert a buffer in between the pin and the loads. The inserted buffer should be of the minimum size that can drive the load legally.
+
+
+
+% Since we can get the slew value of the edge from the timing analysis, and the capacitance value that the buffer is driving is also known, the two values are good approximations for the input slew and the output capacitance of the buffer, and we can use them to find the approximated delay value $d$ of the buffer. 
 
 
 %\subsection{Buffer Insertion}
