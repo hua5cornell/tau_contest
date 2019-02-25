@@ -38,7 +38,7 @@ As STA needs to track active nodes explicitly, STA is a {\em data-driven} algori
 \paragraph{For fixing maximum load constraints} As explained in Section~\ref{sec:buf_insert}, a buffer is inserted in between a gate output pin, $v$, and its load, $load(v)$, if $load(v) > maxC(v)$, where $maxC(v)$ is the maximum load that can be driven by $v$.
 Every gate output can insert such a buffer independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{For fixing hold time violations} Recall from Section~\ref{sec:buf_insert} that we insert buffers to a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the edge having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
+\paragraph{For fixing hold time violations} Recall from Section~\ref{sec:buf_insert} that we insert buffers to a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the wire segment having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
 
 \subsubsection{Gate Sizing with Slew Targeting}
 
