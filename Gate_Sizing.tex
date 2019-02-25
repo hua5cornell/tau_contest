@@ -126,19 +126,19 @@ By updating the slew targets properly, we can eliminate maximum slew violation b
 Having the slew target updated, we now size the gates. Since output capacitance usually has larger impact on the cell timing than the input slew, we want to fix all the downstream gates of $g$ before sizing $g$. This requires a reverse topological order of all gates. However, gates may form cycles in a synchronous design using registers. To resolve this issue, we ignore the edges feeding into register inputs to have a directed acyclic graph (DAG), from which we define a reverse topological order for gates.
 
 \subsubsection{Input Slew Estimation}
-As the given cell libraries are of NLDM, and upstream gates of $g$ are not fixed yet, we need to estimate slews for each of $g$'s input pins. Figure~\ref{fig:slew} shows an example. Let $est\_slew(p) = \theta slewt(p) - (1-\theta)slew(p)$ be the estimated slew at output pin $p$, where $\theta \in [0,1]$ is a parameter that is close to 1 when gate sizing starts but close to 0 when gate sizing is about to converge. Then, $est\_slew(q) = est\_slew(p') + slew\_degrad(p', q)$, where $slew\_degrad(p', q)$ denotes the slew degradation due to the wire segment from $p'$ to $q$, which can be computed by the RC-tree model~\cite{TAU:Contest}.
+As the given cell libraries are of NLDM, and upstream gates of $g$ are not fixed yet, we need to estimate slews for each of $g$'s input pins. Figure~\ref{fig:slew} shows an example. Let $est\_slew(p) = \theta slewt(p) - (1-\theta)slew(p)$ be the estimated slew at output pin $p$, where $slew(p)$ is the slew of $p$ from the STA and $\theta \in [0,1]$ is a parameter that is close to 1 when gate sizing starts but close to 0 when gate sizing is about to converge. Then, $est\_slew(q) = est\_slew(p') + slew\_degrad(p', q)$, where $slew\_degrad(p', q)$ denotes the slew degradation due to the wire segment from $p'$ to $q$, which can be computed by the RC-tree model~\cite{TAU:Contest}.
 
 \subsubsection{Cell Selection}
 
-Let $out\_est\_slew(p)$ be the estimated output slew at pin $p$ through table look-up using the load seen by $p$ and $est\_slew(q)$, where $(q, p)$ is a timing arc. A pin may have different slew targets for each combination of timing corners and setup/hold time analysis, so use the corresponding one when sizing a gate.
+Let $out\_est\_slew(p)$ be the estimated output slew at pin $p$ through table look-up using the load seen by $p$ and $est\_slew(q)$, where $(q, p)$ is a timing arc. A pin may have different slew targets for each combination of timing corners and setup/hold time analysis, so we use the corresponding one when sizing a gate.
 
 \begin{itemize}
 \item In setup time analysis, we select for gate $g$ the minimum size of equivalent cells such that $out\_est\_slew(p) \leq slewt(p)$ holds for all output pins $p$ of gate $g$ at the corner being considered. Then we choose the maximum sized cell from the selected cells across all corners for gate $g$ in setup time analysis. We define $size_{s}(g)$ as the cell size selected for $g$ in setup time analysis.
 
 \item In hold time analysis, the selection works in the opposite way: we select the maximum size of equivalent cells such that $out\_est\_slew(p) \geq slewt(p)$ holds for all output pins $p$ of gate $g$ at the corner being considered; and then choose the minimum sized cell from the selected cells across all corners for gate $g$ in hold time analysis. We define $size_{h}(g)$ as the cell size selected for $g$ in hold time analysis.
-    
+
 \item If $size_{s}(g) \leq size_{h}(g)$, then assign the cell of size $size_{s}(g)$ to gate $g$. This is because any cell sizes in $[size_{s}(g), size_{h}(g)]$ satisfy both slew targets in setup time and hold time analysis. In order to minimize area and leakage power, we choose $size_{s}(g)$ for gate $g$.
-    
+
 \item If $size_{s}(g) > size_{h}(g)$, then assign the cell of size $size_{h}(g)$ to gate $g$. This is because there is no cell size that can satisfy both slew targets in setup time and hold time analysis at the same time. We honor hold time constraints in this case without sacrificing setup time seriously, since hold time violations cannot be fixed by adjusting the clock frequency.
 
 \item The cell size for gate $g$ should not violate maximum capacitance limits for any of $g$'s output pins. Otherwise, the cell of minimum size without such violation is chosen for gate $g$.
