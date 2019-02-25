@@ -1,4 +1,6 @@
 \section{Parallelization}
+\label{sec:parallel}
+
 \subsection{The Operator Formulation}
 
 We leverage parallelization to achieve fast design optimization. In order to do so effectively, we analyze the parallelism available in our optimizer with the operator formulation~\cite{pingali11}, a {\em data-centric} abstraction of algorithms.
@@ -21,7 +23,7 @@ With the operator formulation of algorithms, we are ready to analyze the paralle
 \subsubsection{Static Timing Analysis}
 \label{sec:sta_parallel}
 
-Given a synchronous design, static timing analysis (STA) represents the design as a timing graph $G = (V, E)$, a directed acyclic graph (DAG), where nodes in $V$ are the pins and $(u, v) \in E$ are wires or timing arcs between pins. For an edge $(u, v)$, we say $u$ is $v$'s predecessor and $v$ is $u$'s successor. STA then computes for all pins their arrival times and slew rates in topological order from primary inputs; and computes required times and slacks in reverse topological order from primary outputs and constrained pins, e.g., register inputs.
+Given a synchronous design, STA represents the design as a timing graph $G = (V, E)$, a DAG, where nodes in $V$ are the pins and $(u, v) \in E$ are wires or timing arcs between pins. For an edge $(u, v)$, we say $u$ is $v$'s predecessor and $v$ is $u$'s successor. STA then computes for all pins their arrival times and slew rates in topological order from primary inputs; and computes required times and slacks in reverse topological order from primary outputs and constrained pins, e.g., register inputs.
 
 As the timing graph for a synchronous design is a DAG, the processing order in STA can be enforced by explicitly tracking the number of unresolved dependencies for each node. A node can be processed if all its dependencies are resolved, and all the nodes whose dependencies are cleared at the same time can be processed in parallel.
 
@@ -33,24 +35,24 @@ As STA needs to track active nodes explicitly, STA is a {\em data-driven} algori
 
 \subsubsection{Buffer Insertion}
 
-\paragraph{For fixing maximum load constraints} As explained in Section ???, a buffer is inserted in between a gate output pin, $v$, and its load, $load(v)$, if $load(v) > maxC(v)$, where $maxC(v)$ is the maximum load that can be driven by $v$.
+\paragraph{For fixing maximum load constraints} As explained in Section~\ref{sec:buf_insert}, a buffer is inserted in between a gate output pin, $v$, and its load, $load(v)$, if $load(v) > maxC(v)$, where $maxC(v)$ is the maximum load that can be driven by $v$.
 Every gate output can insert such a buffer independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{For fixing hold time violations} Recall from Section ??? that we insert buffers to a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the edge having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
+\paragraph{For fixing hold time violations} Recall from Section~\ref{sec:buf_insert} that we insert buffers to a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the edge having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
 
 \subsubsection{Gate Sizing with Slew Targeting}
 
-Recall from Section ??? that gate sizing with slew targeting~\cite{Held:Gate} is a round-based algorithm. In each round, a full STA is performed first, then all pins set their slew targets, and then all gates select their cells. Finally, the new cell assignment is scored and then kept or reverted.
+Recall from Section~\ref{sec:gate_sizing} that gate sizing with slew targeting~\cite{Held:Gate} is a round-based algorithm. In each round, a full STA is performed first, then all pins set their slew targets, and then all gates select their cells. Finally, the new cell assignment is scored and then kept or reverted.
 
 \paragraph{Setting slew targets} Slew targets can be set for each pin independently in any order, since each pin only needs its slack and current slew to decide its slew target in the next round. Therefore, setting slew targets is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{Cell assignment} The parallelism available in assigning cells to gates is similar to that in computing required times and slacks in STA. As pointed out in~\cite{Held:Gate}, output driving capacitance impacts more on a gate's output slew and delay; hence, it is desirable to fix all cell assignments for the downstream gates of gate $g$ before assigning $g$ to a cell. Downstream gates of a gate $g$ are defined as the gates closer to register inputs or primary outputs than $g$ is, excluding registers if $g$ is not part of the design's clock network.
+\paragraph{Cell assignment} The parallelism available in assigning cells to gates is similar to that in computing required times and slacks in STA. As mentioned in~\ref{sec:sizing_order}, gates should be sized in reverse topological order on the graph of gate connectivity, with edges feeding into register data inputs ignored. Instead of constructing a gate connectivity graph and then ignore some edges in it, we can enforce the order of sizing gates with the idea that a gate should be processed after all its pins are processed. This reduces the memory space requirement of ParallelClosure by utilizing the timing graph for STA for gate sizing as well.
 
-The ordering of gates can be enforced with the idea that a gate should be processed after all its pins are processed. Associate for each gate $g$ a counter, $untouched(g)$, to track the number of untouched pins for $g$. Initially $untouched(g) = |pin(g)|$, where $pin(g)$ is the set of pins belonging to gate $g$. The dependency among pins are tracked as in Section~\ref{sec:sta_parallel} for computing required times and slacks in STA. When a pin $v$ is processed, $v$ also atomically decrements $untouch(gate(v))$, where $gate(v)$ is the gate $v$ belongs to. Gate $g$ becomes active when $untouched(g) = 0$. Initially, no gates are active, and pins with no successors are active. All gates with $untouched = 0$ simultaneously can be assigned to cells in parallel.
+Specifically, we associate for each gate $g$ a counter, $untouched(g)$, to track the number of untouched pins for $g$. Initially $untouched(g) = |pin(g)|$, where $pin(g)$ is the set of pins belonging to gate $g$. The dependency among pins are tracked as in Section~\ref{sec:sta_parallel} for computing required times and slacks in STA. When a pin $v$ is processed, $v$ also atomically decrements $untouch(gate(v))$, where $gate(v)$ is the gate to which pin $v$ belongs. Gate $g$ becomes active when $untouched(g) = 0$. Initially, no gates are active, and pins with no successors are active. All gates with $untouched = 0$ simultaneously can be assigned to cells in parallel.
 
 Similar to STA, cell assignment is a {\em data-driven}, {\em unordered} algorithm. Nevertheless, its operator is different from the one for computing required times and slacks in STA.
 
-\paragraph{Scoring a cell assignment} A new cell assignment is scored as a linear combination of worst negative slack, average total negative slack, and average cell area. The lower the score, the better. The score can be computed by dividing the gates to threads to compute thread-local results, and then reduce all the thread-local results to the final answer. All gates and constrained pins can be processed in parallel. Therefore, scoring a cell assignment is a {\em topology-driven}, {\em unordered} algorithm.
+\paragraph{Scoring a cell assignment} As mentioned in Section~\ref{sec:sizing_converge}, a new cell assignment is scored as a linear combination of worst negative slack, average total negative slack, and average cell area. The score can be computed by dividing the gates to threads to compute thread-local results, and then reduce all the thread-local results to the final answer. All gates and constrained pins can be processed in parallel. Therefore, scoring a cell assignment is a {\em topology-driven}, {\em unordered} algorithm.
 
 \paragraph{Keeping/reverting a cell assignment} Each gate can be processed independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
 
