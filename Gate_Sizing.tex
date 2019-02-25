@@ -1,4 +1,5 @@
-\section{Buffer Insertion}
+
+
 
 %\subsection{Buffer Insertion}
 %%For buffer insertion problem, van Ginneken's algorithm~\cite{Lukas:Buffer} is considered to be a classic in the field. Given a fixed buffer tree and candidate buffer locations, it finds the optimal buffer solutions under Elmore delay models. Several papers extend the algorithm to handle library with multiple buffers, various kinds of constraints and delay models and wire sizing integration~\cite{Lillis:Optimal,Alpert:Wire,Alpert:Buffer,Lillis:Simultaneous,Cong:Buffer,Wong:A}. A significant limitation of van Ginneken's algorithm is that a fixed Steiner topology must be provided in advance. Several papers address the tree construction problems, including C-Tree Algorithm~\cite{Alpert:Buffered}, P-Tree Algorithm~\cite{Lillis:New} and S-Tree Algorithm~\cite{Hrkic:S}.
@@ -26,16 +27,20 @@
 %%D(s_i, s_j) = \sqrt{tDist(s_i, s_j)^2 + cDist(s_i, s_j)^2}.
 %%\end{equation}
 
-\subsection{Gate Sizing}
+\section{Gate Sizing}
 %Gate sizing problems are also well studied in the literature. TILOS~\cite{Fishburn:TILOS} applied Greedy method to gate sizing and modeled delay and slew functions as posynomials. The paper~\cite{Sapatnekar:An} provided a geometric programming approach, which is guaranteed to find the global optimal solution, to solve the transistor sizing problem. Lagrangian Relaxation is also widely used in both continuous gate sizing~\cite{Chen:Fast} and discrete gate sizing~\cite{Liu:A}, and it provides scalable methods to large instances. Faster approaches for gate sizing in practice given predefined discrete cell libraries are delay budget approaches~\cite{Chen:iCOACH,Dai:MOSIZ}, which repeatedly distribute delay budgets to cells and can manage interactions between gates~\cite{Held:Gate}. Slew target can also be distributed instead of delay budgets as an alternative, based on the assumption that the delay is a monotonic function of the slew. Most of other discrete gate sizing methods ignore the slew, and compared to these work, the slew targeting method enables a more accurate gate sizing~\cite{Held:Gate}.
 
-Gate sizing problems are also well studied in the literature. In this contest, we are going to implement the slew target method presented in~\cite{Held:Gate} for gate sizing due to its accuracy, timing efficiency and adaptivity to our Galois framework. More specifically, unlike greedy method implemented in TILOS~\cite{Fishburn:TILOS} and geometric programming approach adopted in~\cite{Sapatnekar:An}, slew target method in~\cite{Held:Gate} is more timing efficient by avoiding incremental timing updates. Slew target approach~\cite{Held:Gate} also turns out to give more accurate gate sizing solutions than delay budget approach~\cite{Chen:iCOACH,Dai:MOSIZ}. Furthermore, it is a graph-based algorithm, which well adapts to our Galois system. Since the paper focuses on fixing setup time violations, we generalize the method a little bit such that it also addresses hold time violations.
-
-Slew target method is based on the assumption that the delay is a monotonic function of the input slew. This assumption generally holds in practical design as can be seen in the cell library file, but there might be small fluctuations on delay/output slew vs input slew where the monotone property fail. Empirically, we do not have to worry about this because output slew and delay are weak functions of input slew, and the small fluctuations will not affect the accuracy of the final solution of our implementation by much.
+Gate sizing problems are also well studied in the literature. In this contest, we are going to implement the slew target method presented in~\cite{Held:Gate} because it can address slew violations and it is highly parallelizable. More specifically, unlike greedy method implemented in TILOS~\cite{Fishburn:TILOS} and geometric programming approach adopted in~\cite{Sapatnekar:An}, slew target method in~\cite{Held:Gate} is more timing efficient by avoiding large number of incremental timing updates. Since the paper focuses on fixing setup time violations, we generalize the method a little bit such that it also addresses hold time violations.
+%Slew target approach~\cite{Held:Gate} also turns out to give more accurate gate sizing solutions than delay budget approach~\cite{Chen:iCOACH,Dai:MOSIZ}. Furthermore, it is a graph-based algorithm, which well adapts to our Galois system. Since the paper focuses on fixing setup time violations, we generalize the method a little bit such that it also addresses hold time violations.
+\subsection{Slew Target Method Basics}
+Discrete gate sizing problem in the paper is stated as following: Given a circuit, we will assign each individual cell in the circuit a library cell from a discrete cell library, and the assignment should be chosen such that all the timing constraints are met (all the slack are non-negative) and the slew value at each pin is no larger than the slew limit value. Slew target method is based on the assumption that the delay is a monotonic function of the input slew. This assumption generally holds in practical design as can be seen in the cell library file, but there might be small fluctuations on delay/output slew vs input slew where the monotone property fail. Empirically, we do not have to worry about this because output slew and delay are weak functions of input slew, and the small fluctuations will not affect the accuracy of the final solution of our implementation by much.
 
 %It turns out that slew target method gives more efficient and accurate gate sizing solutions. The assumption that the delay is a monotonic function of the slew generally holds, although some small fluctuations might exist, which should not affect the final solution by much. Furthermore, our Galois system provides better support for graph-based algorithms. Thus, in this contest, we are going to adopt the slew target method presented in~\cite{Held:Gate} for gate sizing.
 
-The slew target method works as following: An initial round of timing analysis is performed for the design and the slew targets under setup time constraint (and hold time constraint) for all cell output pins $p$: $slewt_s(p)$ and $slewt_h(p)$ are initialized as the maximum slew rate (and minimum slew rate) $\star$ indicated in the cell library, respectively. According to the slew targets, we assign the sizes to each cell in reverse topological order, because the output capacitance usually has larger impact on the cell timing than the input slew, and it is better to know the exact output capacitance when sizing a cell. Specifically, look at Figure~\ref{fig:slew}. When sizing the cell $c$, the downstream cells are already sized and the output capacitance is already available. However, the input slew $slew(q)$ also depends on the unknown predecessor size. As a result, the paper gives an estimation of slew at $p'$, under setup time constraint (and hold time constraint): $est\_slew_s(p')$ (and $est\_slew_h(p')$), based on the slew provided by timing analysis and its slew target, to decide the size of $c$:
+The slew target method works as following: An initial round of timing analysis is performed for the design and the slew targets under setup time constraint (and hold time constraint) for all cell output pins $p$: $slewt_s(p)$ and $slewt_h(p)$ are initialized to the value that we get in the initial round of timing analysis. According to the slew targets, we assign the sizes to each cell in reverse topological order, because the output capacitance usually has larger impact on the cell timing than the input slew, and it is better to know the exact output capacitance when sizing a cell.
+
+\subsection{Slew Approximation}
+Specifically, look at Figure~\ref{fig:slew}. When sizing the cell $c$, the downstream cells are already sized and the output capacitance is already available. However, the input slew $slew(q)$ also depends on the unknown predecessor size. As a result, the paper gives an estimation of slew at $p'$, under setup time constraint (and hold time constraint): $est\_slew_s(p')$ (and $est\_slew_h(p')$), based on the slew provided by timing analysis and its slew target, to decide the size of $c$:
 \begin{equation}
 est\_slew_s(p') = \theta slewt_s(p') - (1-\theta)slew(p'),
 \end{equation}
@@ -43,12 +48,46 @@ and
 \begin{equation}
 est\_slew_h(p') = \theta slewt_h(p') - (1-\theta)slew(p'),
 \end{equation}
-where $\theta \in [0, 1]$ is an empirical factor which can shift from pure slew target $\theta = 1$ to real timing analysis $\theta = 0$.
+where $\theta \in [0, 1]$ is a factor which can shift from pure slew target $\theta = 1$ to real timing analysis $\theta = 0$. Empirically, $\theta$ should be close to 1 initially since the cell sizes are actively changing, but close to 0 later when the cell sizes converge.
 
+\subsection{Cell Size Assignment}
 After we have estimated slew for $p'$, we can use the slew degradation formula presented in~\cite{TAU:Contest} to calculate $slew_s(q)$ (and $slew_h(q)$). We can then use the table look-up in the cell library to assign the smallest (and largest) cell size that gives the output slew $slew(p)$ such that $slew_s(p) \leq slewt_s(p)$ (and $slew_h(p) >= slewt_h(p)$) for any given timing arc from an input to an output. As we consider the case when there are multiple outputs and multiple corners, we must take the largest (and the smallest) cell size across different outputs and different corners under setup time target (and hold time target) because all the timing outputs and corners must satisfy the slew target.
 
 The gate sizing solution for the setup time target (and the hold time target) gives an lower bound (and a upper bound) for the cell size. If the intersection is non-empty, which means that there are cell sizes that satisfy both slew targets, then we choose the minimum size within the intersection to minimize the area and the power. If the intersection is empty, then we choose the upper bound gate size, which satisfies the hold time slew target, while sacrifices the setup time slew target to the least extent. This is because hold time constraint is more essential and we can easily fix the setup timing constraint by lower the clock frequency.
 
+\begin{table*}
+\caption{The Delay Table for Buf\_X1 from Nangate 45nm Typical Corner}
+\label{table:lib}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
+\diagbox{Input Transition}{Output Capacitance} & 0.365616 & 1.895430 & 3.790860 & 7.581710 & 15.163400 & 30.326900 & 60.653700 \\ \hline
+1.23599 & 3.33809 & 5.59725 & 8.60523 & 14.8575 & 27.5164 & 52.8765 & 103.604 \\ \hline
+4.43724 & 3.33727 & 5.59699 & 8.60578 & 14.8576 & 27.5188 & 52.8775 & 103.599 \\ \hline
+15.6743 & 3.40246 & 5.62543 & 8.61689 & 14.8582 & 27.517 & 52.8787 & 103.599 \\ \hline
+37.1331 & 4.36023 & 6.10464 & 8.84317 & 14.9465 & 27.5247 & 52.8726 & 103.605 \\ \hline
+70.5649 & 5.85455 & 7.27833 & 9.43026 & 15.0988 & 27.6409 & 52.9322 & 103.603 \\ \hline
+117.474 & 7.61897 & 9.14083 & 10.8314 & 15.5462 & 27.6912 & 53.0238 & 103.669 \\ \hline
+179.199 & 9.58764 & 11.3565 & 13.0249 & 16.7347 & 27.8716 & 53.0513 & 103.775 \\ \hline
+\end{tabular}
+\vspace{-1em}
+\end{table*}
+
+\begin{table*}
+\caption{The Delay Table for Buf\_X2 from Nangate 45nm Typical Corner}
+\label{table:lib}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
+\diagbox{Input Transition}{Output Capacitance} & 0.365616 & 3.786090 & 7.572190 & 15.144400 & 30.288800 & 60.577500 & 121.155000 \\ \hline
+1.23599 & 3.10917 & 5.67693 & 8.71288 & 14.9785 & 27.635 & 52.969 & 103.657 \\ \hline
+4.43724 & 3.10875 & 5.67786 & 8.71402 & 14.9788 & 27.6339 & 52.9719 & 103.66 \\ \hline
+15.6743 & 3.20354 & 5.70984 & 8.72471 & 14.9811 & 27.631 & 52.9744 & 103.651 \\ \hline
+37.1331 & 4.20264 & 6.15463 & 8.94062 & 15.0761 & 27.6468 & 52.967 & 103.666 \\ \hline
+70.5649 & 5.70174 & 7.27713 & 9.47332 & 15.2076 & 27.7634 & 53.0379 & 103.659 \\ \hline
+117.474 & 7.47026 & 9.1372 & 10.8172 & 15.6132 & 27.8134 & 53.1232 & 103.735 \\ \hline
+179.199 & 9.44195 & 11.3787 & 12.9969 & 16.7387 & 27.9813 & 53.162 & 103.831 \\ \hline
+\end{tabular}
+\vspace{-1em}
+\end{table*}
 After gate(cell) sizing assignment, the timing analysis based on the design with new gate(cell) sizes, and refine the slew target for the next round of gate sizing assignment. This iterative process terminates until the stopping criterion is met: 1. the worst negative slack becomes worse and 2. the absolute sum of negative slacks divided by the number of end points and the average cell area increases. Then, the assignment of the previous iteration, which achieves the best present objective value, is recovered.
 
 %Again, since our problem considers multiple corners, after we get the sizing solution for each corner, we must take the maximum sizing for each cell across different corners to make sure that the sizing solution satisfies the slew targets for all the corners.
