@@ -1,12 +1,24 @@
 \section{Introduction}
-Timing-driven optimization is imperative for the success of closure flows, and it is essential to find efficient ways to make changes to the design to satisfy timing constraints and optimize power, performance and area. In this contest, given a Verilog netlist, a SPEF file for net delay models, a set of cell libraries (corners) and an SDC file, we are going to generate an optimized design in Verilog and Spef with no violations of hold time and maximum slew transition, and minimized area, leakage power and clock period for all given corners. Note that the optimization should consider multi-corner multi-mode (MCMM) scenario.
+Timing-driven optimization is imperative for the success of closure flows, and it is essential to find efficient ways to make changes to the design to satisfy timing constraints and optimize power, performance and area. In this contest, given a Verilog netlist, a SPEF file for net delay models, a set of cell libraries (corners) and an SDC file, we are going to generate an optimized design in Verilog and Spef with no violations of hold time and maximum slew transition and minimized area, leakage power and clock period for all given corners. Note that the optimization should consider multi-corner multi-mode (MCMM) scenario.
 
-The optimization can be done by buffer insertion/deletion and gate sizing. 
+The optimization can be done by buffer insertion/deletion and gate sizing.
 
 
 According to the paper~\cite{Jiang:Interleaving}, buffer insertion implies an increase of the area, and might be more preferred for highly critical paths. For other mildly critical paths, however, gate sizing will be better choice. Thus, we are going to implement our design optimization flow in this contest as following: First, we run timing analysis for the whole circuit once, and identify high fan-out nets (and highly critical nets) with some reasonable criterions. Then based on the contest rule that no buffers are allowed within an RC-tree, we will perform buffer insertion for those high fan-out nets without an RC-tree only and leave the remaining violations and optimization problems to gate sizing stage for convenience. Finally, we will perform the gate sizing and conclude our design optimization flow.
 
-
+\begin{table*}
+\caption{Impact of Incremental Design Changes}
+\label{table:Change}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|} \hline
+Technique & Setup Timing & Hold Timing & Max Transition & Leakage Power & Area \\ \hline
+Add Buffer & Degrade & Improve & Improve & Increase & Increase\\ \hline
+Upsize Strength & Improve & Degrade & Improve & Increase & Increase \\ \hline
+Downsize Strength & Degrade & Improve & Degrade & Decrease & Decrease \\ \hline
+Delete Buffer & Degrade or Improve & Degrade or Improve & Degrade or Improve & Decrease & Decrease \\ \hline
+\end{tabular}
+\vspace{-1em}
+\end{table*}
 
 %Also, according to the literature review, slew target method gives more efficient and accurate gate sizing solutions. Furthermore, our Galois system provides better support for graph-based algorithms. Considering all of these facts, we
 
