@@ -7,13 +7,15 @@ We leverage parallelization to achieve fast design optimization. To do this, we 
 
 The local view is described by an {\em operator}, a graph update rule applied to {\em active nodes}, which are nodes in the graph where there is computation to be done. Each operator application, called an {\em action}, may read from/write to a set of nodes and edges around the active node, termed the {\em neighborhood} of the action. Active nodes become inactive once the actions are finished.
 
-The global view is captured by (1) the location of active nodes, and (2) the order by which the actions must appear to be carried out. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active elements in any order gives the same answer. However, some orderings may be more efficient than the others.
+The global view is captured by (1) the location of active nodes, and (2) the order by which the actions must appear to be carried out. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active nodes in any order gives the same answer. However, some orderings may be more efficient than the others.
 
 %{\em Ordered} algorithms, on the other hand, require active elements to be processed as if by certain ordering in order to give correct results~\cite{hassaan11}. For instance, discrete event simulation needs to follow time ordering among events.
 
-Algorithms can be categorized as {\em data-driven} or {\em topology-driven} based on the pattern of active nodes. A data-driven algorithm begins with a set of initially active nodes, generates new active nodes on the fly, and terminates when there are no more active nodes to be processed. Dijkstra's single-source shortest path (SSSP) algorithm is an example. In contrast, a topology-driven algorithm makes sweeps over all nodes until certain convergence criteria is reached. Bellman-Ford algorithm is an example. Although this discuss has focused on algorithms in which nodes are active, the same approach works for algorithms in which \emph{edges} are active so in general, we refer to active \emph{elements} in the graph.
+Algorithms can be categorized as {\em data-driven} or {\em topology-driven} based on the pattern of active nodes. A data-driven algorithm begins with a set of initially active nodes, generates new active nodes on the fly, and terminates when there are no more active nodes to be processed. Dijkstra's single-source shortest path (SSSP) algorithm is an example. In contrast, a topology-driven algorithm makes sweeps over all nodes until certain convergence criteria is reached. Bellman-Ford algorithm is an example.
 
-Parallelism in graph algorithms can be exploited by parallel executiion of actions with disjoint neighborhoods.
+Although this discussion has focused on algorithms in which nodes are active, the same approach works for algorithms in which \emph{edges} are active. So in general, we refer to active \emph{elements} in the graph.
+
+Parallelism in graph algorithms can be exploited by parallel execution of actions with disjoint neighborhoods.
 
 \subsection{Available Parallelism}
 \label{sec:avail_parallelism}
@@ -33,26 +35,26 @@ As STA needs to track active pins explicitly, STA is a {\em data-driven} algorit
 
 \subsubsection{Buffer Insertion}
 
-\paragraph{For fixing maximum load constraints:} As explained in Section~\ref{sec:buf_insert}, a buffer is inserted in between a gate output pin, $v$, and its load, $load(v)$, if $load(v) > maxC(v)$, where $maxC(v)$ is the maximum load that can be driven by $v$.
+\paragraph{For fixing maximum load constraints} As explained in Section~\ref{sec:buf_insert}, a buffer is inserted in between a gate output pin, $v$, and its load, $load(v)$, if $load(v) > maxC(v)$, where $maxC(v)$ is the maximum load that can be driven by $v$.
 Every gate output can insert such a buffer independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{For fixing hold time violations:} Recall from Section~\ref{sec:buf_insert} that we insert buffers in a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the wire segment having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
+\paragraph{For fixing hold time violations} Recall from Section~\ref{sec:buf_insert} that we insert buffers in a design to fix hold time violations round by round. In each round, we run STA to identify the most-critical hold-time path, and insert buffers to the wire segment having the largest setup-time slack on the path. Since there is only one active edge in a round, our buffer insertion scheme contains no parallelism. It is a {\em data-driven} algorithm, since the active edge in a round depends on the circuit timing in the round.
 
 \subsubsection{Gate Sizing with Slew Targeting}
 
 Recall from Section~\ref{sec:gate_sizing} that gate sizing with slew targeting~\cite{Held:Gate} is a round-based algorithm. In each round, a full STA is performed first, then all pins set their slew targets, and then all gates select their cells. Finally, the new cell assignment is scored and then kept or reverted.
 
-\paragraph{Setting slew targets:} Slew targets can be set for each pin independently in any order, since each pin $p$ can get from STA the required information for computing new slew target in the next round: current slew, $p$'s own slack, and the neighboring gates' pins' slacks. Therefore, setting slew targets is a {\em topology-driven}, {\em unordered} algorithm.
+\paragraph{Setting slew targets} Slew targets can be set for each pin independently in any order, since each pin $p$ can get from STA the required information for computing new slew target in the next round: current slew, $p$'s own slack, and the neighboring gates' pins' slacks. Therefore, setting slew targets is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{Cell assignment:} The parallelism available in assigning cells to gates is similar to that in computing required times and slacks in STA. As mentioned in~\ref{sec:sizing_order}, gates should be sized in reverse topological order on the graph of gate connectivity, with edges feeding into register data inputs ignored. Instead of constructing a gate connectivity graph and then ignore some edges in it, we can enforce the order of sizing gates with the idea that a gate should be processed after all its pins are processed. This reduces the memory space requirement of ParallelClosure by utilizing the timing graph for STA for gate sizing as well.
+\paragraph{Cell assignment} The parallelism available in assigning cells to gates is similar to that in computing required times and slacks in STA. As mentioned in~\ref{sec:sizing_order}, gates should be sized in reverse topological order on the graph of gate connectivity, with edges feeding into register data inputs ignored. Instead of constructing a gate connectivity graph and then ignore some edges in it, we can enforce the order of sizing gates with the idea that a gate should be processed after all its pins are processed. This reduces the memory space requirement of ParallelClosure by utilizing the timing graph for STA for gate sizing as well.
 
 Specifically, we associate for each gate $g$ a counter, $untouched(g)$, to track the number of untouched pins for $g$. Initially $untouched(g) = |pin(g)|$, where $pin(g)$ is the set of pins belonging to gate $g$. The dependency among pins are tracked as in Section~\ref{sec:sta_parallel} for computing required times and slacks in STA. When a pin $v$ is processed, $v$ also atomically decrements $untouch(gate(v))$, where $gate(v)$ is the gate to which pin $v$ belongs. Gate $g$ becomes active when $untouched(g) = 0$. Initially, no gates are active, and pins with no successors are active. All gates with $untouched = 0$ simultaneously can be assigned to cells in parallel.
 
 Similar to STA, cell assignment is a {\em data-driven}, {\em unordered} algorithm. Nevertheless, its operator is different from the one for computing required times and slacks in STA.
 
-\paragraph{Scoring a cell assignment:} As mentioned in Section~\ref{sec:sizing_converge}, a new cell assignment is scored as a linear combination of worst negative slack, average total negative slack, and average cell area. The score can be computed by dividing the gates to threads to compute thread-local results, and then reduce all the thread-local results to the final answer. All gates and constrained pins can be processed in parallel. Therefore, scoring a cell assignment is a {\em topology-driven}, {\em unordered} algorithm.
+\paragraph{Scoring a cell assignment} As mentioned in Section~\ref{sec:sizing_converge}, a new cell assignment is scored as a linear combination of worst negative slack, average total negative slack, and average cell area. The score can be computed by dividing the gates to threads to compute thread-local results, and then reduce all the thread-local results to the final answer. All gates and constrained pins can be processed in parallel. Therefore, scoring a cell assignment is a {\em topology-driven}, {\em unordered} algorithm.
 
-\paragraph{Keeping/reverting a cell assignment:} Each gate can be processed independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
+\paragraph{Keeping/reverting a cell assignment} Each gate can be processed independently, so this is a {\em topology-driven}, {\em unordered} algorithm.
 
 \subsection{Implementation in Galois}
 
