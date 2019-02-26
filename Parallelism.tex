@@ -3,17 +3,17 @@
 
 \subsection{The Operator Formulation}
 
-We leverage parallelization to achieve fast design optimization. In order to do so effectively, we analyze the parallelism available in our optimizer with the operator formulation~\cite{pingali11}, a {\em data-centric} abstraction of algorithms.
+We leverage parallelization to achieve fast design optimization. To do this, we analyze the parallelism available in our optimizer with the operator formulation~\cite{pingali11}, a {\em data-centric} abstraction of algorithms.
 
 The operator formulation starts from identifying the data structures involved in the algorithm, e.g., a graph. {\em Active elements} capture where in the graph the computation needs to be done. An {\em operator} specifies the rules to update the graph, and it will be applied to active elements. Each application of an operator to an active element is called an {\em action}. An action may need to read from or write to a set of nodes and edges around the active element, which is termed the {\em neighborhood} of the action. Active elements become inactive once the actions are finished.
 
 Algorithms can be categorized as {\em data-driven} or {\em topology-driven} based on the pattern of active elements. A data-driven algorithm begins with a set of initially active elements, generates new active elements on the fly, and terminates when there are no more active elements to be processed. Dijkstra's single-source shortest path (SSSP) algorithm is an example. In contrast, a topology-driven algorithm makes sweeps over all nodes/edges until certain convergence criteria is reached. Bellman-Ford algorithm is an example.
 
-Scheduling needs to be considered when there are multiple active elements at the same time. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active elements in any order gives the same answer. However, some ordering may be more efficient than the others.
+Scheduling needs to be considered when there are multiple active elements at the same time. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active elements in any order gives the same answer. However, some orderings may be more efficient than the others.
 
 %{\em Ordered} algorithms, on the other hand, require active elements to be processed as if by certain ordering in order to give correct results~\cite{hassaan11}. For instance, discrete event simulation needs to follow time ordering among events.
 
-Parallelism in graph algorithms can be exploited among actions with disjoint neighborhoods and read-only operators.
+Parallelism in graph algorithms can be exploited among actions with disjoint neighborhoods.
 
 \subsection{Available Parallelism}
 \label{sec:avail_parallelism}
