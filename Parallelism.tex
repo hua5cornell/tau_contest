@@ -3,15 +3,15 @@
 
 \subsection{The Operator Formulation}
 
-We leverage parallelization to achieve fast design optimization. To do this, we analyze the parallelism available in our optimizer with the operator formulation~\cite{pingali11}, a {\em data-centric} abstraction of algorithms.
+We leverage parallelization to achieve fast design optimization. To do this, we analyze the parallelism available in our optimizer with the operator formulation, a {\em data-centric} abstraction that presents a {\em local view} and a {\em global view} of algorithms~\cite{pingali11}.
 
-The operator formulation starts from identifying the data structures involved in the algorithm, e.g., a graph. {\em Active elements} capture where in the graph the computation needs to be done. An {\em operator} specifies the rules to update the graph, and it will be applied to active elements. Each application of an operator to an active element is called an {\em action}. An action may need to read from or write to a set of nodes and edges around the active element, which is termed the {\em neighborhood} of the action. Active elements become inactive once the actions are finished.
+The local view is described by an {\em operator}, a graph update rule applied to {\em active elements}, where in the graph the computation needs to be done. Each operator application, called an {\em action}, may read from/write to a set of nodes and edges around the active element, termed the {\em neighborhood} of the action. Active elements become inactive once the actions are finished.
 
-Algorithms can be categorized as {\em data-driven} or {\em topology-driven} based on the pattern of active elements. A data-driven algorithm begins with a set of initially active elements, generates new active elements on the fly, and terminates when there are no more active elements to be processed. Dijkstra's single-source shortest path (SSSP) algorithm is an example. In contrast, a topology-driven algorithm makes sweeps over all nodes/edges until certain convergence criteria is reached. Bellman-Ford algorithm is an example.
-
-Scheduling needs to be considered when there are multiple active elements at the same time. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active elements in any order gives the same answer. However, some orderings may be more efficient than the others.
+The global view is captured by (1) the location of active elements, and (2) the order by which the actions must appear to be carried out. For {\em unordered} algorithms, e.g., chaotic relaxation for SSSP, processing active elements in any order gives the same answer. However, some orderings may be more efficient than the others.
 
 %{\em Ordered} algorithms, on the other hand, require active elements to be processed as if by certain ordering in order to give correct results~\cite{hassaan11}. For instance, discrete event simulation needs to follow time ordering among events.
+
+Algorithms can be categorized as {\em data-driven} or {\em topology-driven} based on the pattern of active elements. A data-driven algorithm begins with a set of initially active elements, generates new active elements on the fly, and terminates when there are no more active elements to be processed. Dijkstra's single-source shortest path (SSSP) algorithm is an example. In contrast, a topology-driven algorithm makes sweeps over all nodes/edges until certain convergence criteria is reached. Bellman-Ford algorithm is an example.
 
 Parallelism in graph algorithms can be exploited among actions with disjoint neighborhoods.
 
@@ -23,15 +23,13 @@ With the operator formulation of algorithms, we are ready to analyze the paralle
 \subsubsection{Static Timing Analysis}
 \label{sec:sta_parallel}
 
-Given a synchronous design, STA represents the design as a timing graph $G = (V, E)$, a DAG, where nodes in $V$ are the pins and $(u, v) \in E$ are wires or timing arcs between pins. For an edge $(u, v)$, we say $u$ is $v$'s predecessor and $v$ is $u$'s successor. STA then computes for all pins their arrival times and slew rates in topological order from primary inputs; and computes required times and slacks in reverse topological order from primary outputs and constrained pins, e.g., register inputs.
+Given a synchronous design, STA represents the design as a timing graph $G = (V, E)$, a DAG, where nodes in $V$ are the pins and $(u, v) \in E$ are wires or timing arcs between pins. For an edge $(u, v)$, we say $u$ is $v$'s predecessor and $v$ is $u$'s successor. STA then computes for all pins their arrival times and slew rates in topological order from primary inputs (forward propagation); and computes required times and slacks in reverse topological order from primary outputs and constrained pins, e.g., register inputs (backward propagation).
 
 As the timing graph for a synchronous design is a DAG, the processing order in STA can be enforced by explicitly tracking the number of unresolved dependencies for each pin. A pin can be processed if all its dependencies are resolved, and all the pins whose dependencies are cleared at the same time can be processed in parallel.
 
-Specifically, each pin $v$ is associated with a counter, $dep(v)$, to track the number of unresolved dependencies for $v$ at a moment. For computing arrival times and slew rates, initially $dep(v) = |pred(v)|$, where $pred(v)$ is the set of $v$'s predecessors. When a pin $u$ finishes computing its arrival time and slew rate, $u$ atomically decrements $dep(v)$ for all $v \in succ(u)$, where $succ(u)$ is the set of $u$'s successors. Pin $v$ becomes active when $dep(v) = 0$. Initially only primary inputs are active. Pins can be processed in parallel if their $dep$s are zero at the same time.
+Specifically, for each pin $v$, let $dep(v)$ be its number of unresolved dependencies, $pred(v)$ its predecessors, and $succ(v)$ its successors. For forward propagation, initially $dep(v) = |pred(v)|$; after pin $u$ computes its arrival time and slew rate, $u$ atomically decrements $dep(v)$, $v \in succ(u)$. For backward propagation, initially $dep(v) = |succ(v)|$; after a pin $w$ computes its required time and slack, $w$ atomically decrements $dep(v)$, $v \in pred(w)$. For both forward and backward propagations, pin $v$ becomes active when $dep(v) = 0$, and pins whose $dep$s are zero at the same time can be processed in parallel.
 
-For computing required times and slacks, initially $dep(v) = |succ(v)|$. When a pin $w$ finishes computing its required time and slack, $w$ atomically decrements $dep(v)$ for all $v \in pred(w)$. Pin $v$ becomes active when $dep(v) = 0$. Initially only pins with no successors, e.g., primary outputs, are active. Pins whose $dep$s are zero at the same time can be processed in parallel.
-
-As STA needs to track active nodes explicitly, STA is a {\em data-driven} algorithm. All active pins can be processed in any order, so STA is an {\em unordered} algorithm. Note that the ordering in STA only defines when pins should become active but not the processing order of active pins.
+As STA needs to track active pins explicitly, STA is a {\em data-driven} algorithm. All active pins can be processed in any order, so STA is an {\em unordered} algorithm. Note that the ordering in STA only defines when pins should become active but not the processing order of active pins.
 
 \subsubsection{Buffer Insertion}
 
