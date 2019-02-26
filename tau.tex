@@ -43,34 +43,16 @@ escapeinside={(*}{*)},
 \title{ParallelClosure: A Parallel Design Optimizer for Timing Closure\thanks{Thanks to various funding agencies. Omitted for blind review}
 }
 
-\author{\IEEEauthorblockN{Yi-Shan Lu}
-\IEEEauthorblockA{\textit{Computer Science} \\
-\textit{University of Texas at Austin}\\
-Austin, TX \\
-yishanlu@utexas.edu}
-\and
-\IEEEauthorblockN{Wenmian Hua}
-\IEEEauthorblockA{\textit{Electrical Engineering} \\
-\textit{Yale University}\\
-New Haven, CT \\
-wenmian.hua@yale.edu}
-%\and
-%\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
-%\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-%\textit{name of organization (of Aff.)}\\
-%City, Country \\
-%email address}
-%\and
-%\IEEEauthorblockN{4\textsuperscript{th} Given Name Surname}
-%\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-%\textit{name of organization (of Aff.)}\\
-%City, Country \\
-%email address}
+\author{\IEEEauthorblockN{Yi-Shan Lu\IEEEauthorrefmark{1}, Wenmian Hua\IEEEauthorrefmark{2}, Rajit Manohar\IEEEauthorrefmark{2}, Keshav Pingali\IEEEauthorrefmark{1}} \\[-8pt]
+\IEEEauthorblockA{\IEEEauthorrefmark{1}University of Texas at Austin \\
+\tt\{yishanlu, pingali\}@cs.utexas.edu} \\[-8pt]
+\IEEEauthorblockA{\IEEEauthorrefmark{2}Yale University \\
+\tt\{wenmian.hua, rajit.manohar\}@yale.edu}
 }
 \maketitle
 
 \begin{abstract}
-Timing-driven optimization is essential for the success of closure flows. In this contest, we explore existing efficient buffer insertion and gate sizing algorithms to fix timing violations, and minimize area, leakage power, and clock period for a design without altering its functionality. Using the Galois infrastructure for parallelization, we prototype a fast timing-driven design optimizer, ParallelClosure, to effectively and efficiently optimize designs with a small number of timing violations.
+Timing-driven optimization is essential for the success of closure flows. In this contest, we explore existing efficient buffer insertion and gate sizing algorithms to fix timing violations; and minimize area, leakage power, and clock period for a design without altering its functionality. Using the Galois infrastructure for parallelization, we prototype a fast timing-driven design optimizer, ParallelClosure, to effectively and efficiently optimize designs with a small number of timing violations.
 \end{abstract}
 \tikzset{
 decision/.style={
