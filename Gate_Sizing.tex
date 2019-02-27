@@ -70,7 +70,7 @@ Tables~\ref{table:lib1} and~\ref{table:lib2} show the rising slews for pin Z of 
 
 To upsize/downsize a gate $g$ to which pin $p$ belongs, we take smaller/larger terms in $p$'s slew possibilities, which can be approximated as follows. Through table look-up, the smallest term, $lb$, is computed using the current input slew and zero driving capacitance; and the largest term, $ub$, using the current input slew and the maximum driving capacitance of $p$. Intermediate terms can be approximated based on a geometric sequence whose common ratio $r = (\frac{ub}{lb})^{\frac{1}{k}}$, where $k$ is a tunable parameter. In this contest, we have 8 terms in slew possibilities, and we set $k = 20$. The intermediate 6 terms are $lb\cdot r$, $lb\cdot r^3$, $lb\cdot r^5$, $lb\cdot r^8$, $lb\cdot r^{11}$, and $lb\cdot r^{15}$.
 
-Recall that each output pin may have different slew targets for different timing corners and delay modes. The slew targets for different corners and delay modes can be set independently from each other.
+Recall that each output pin may have different slew targets for different timing corners and delay modes. These slew targets can be set independently from each other.
 
 By updating the slew targets properly, we can eliminate maximum slew violation by construction.
 
