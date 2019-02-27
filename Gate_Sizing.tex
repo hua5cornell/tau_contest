@@ -43,7 +43,7 @@ Slew targeting works by associating each gate output pin with a slew target to g
 
 The original slew targeting method assumes that delay and output slew are monotonic with respect to input slew. However, this assumption does not hold in general. For example, in the cell libraries given by the contest committee, this monotonicity does not hold when input slew is large and the output load is small for several cells. We think slew targeting still works in this case for two reasons: (1) The case when monotonicity does not hold is the situation we want to optimize away for the design; and (2) empirically, output slew and delay are weak functions of input slew, and the small fluctuations will not affect the accuracy of the final solution of our implementation by much.
 
-In order for slew targeting to work, the following questions needs to be addressed:
+In order for slew targeting to work, the following questions need to be addressed:
 \begin{enumerate}
 \item How to set the initial slew target for each gate output?
 \item How to update the slew targets?
