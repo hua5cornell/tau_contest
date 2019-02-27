@@ -31,6 +31,10 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{subcaption}
+\usepackage{flushend}
+
+\AtEndDocument{\par\leavevmode}
+
 \lstset{
 basicstyle={\normalsize\ttfamily},
 escapeinside={(*}{*)},
@@ -160,6 +164,7 @@ groud/.style={
 \input{Conclusions.tex}
 \bibliographystyle{ieeetr}
 \bibliography{cite,iss}
+
 \end{document}
 
 
